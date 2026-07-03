@@ -1,0 +1,8 @@
+# Hand-formatted single-file app — do not reflow
+index.html
+
+# Markdown is linted by markdownlint, not Prettier (avoids table-reflow churn)
+*.md
+
+# Dependencies
+node_modules/

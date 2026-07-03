@@ -1,0 +1,42 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    name: Lint (HTML · Markdown · Prettier)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: HTMLHint
+        run: npx --yes htmlhint index.html
+
+      - name: Markdownlint
+        run: npx --yes markdownlint-cli2 "**/*.md" "#node_modules"
+
+      - name: Prettier
+        run: npx --yes prettier@3 --check .
+
+  links:
+    name: Link check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: lychee
+        uses: lycheeverse/lychee-action@v2
+        with:
+          args: "--no-progress --exclude hiberius.github.io --exclude img.shields.io ."
+          fail: false

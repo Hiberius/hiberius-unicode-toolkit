@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://hiberius.github.io/hiberius-unicode-toolkit/sitemap.xml

@@ -1,0 +1,1118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src 'self' data:; connect-src 'none'; base-uri 'none'; form-action 'none'">
+<meta name="referrer" content="no-referrer">
+<meta name="color-scheme" content="dark">
+
+<!-- ── SEO ─────────────────────────────────────────────────────── -->
+<title>HIBERIUS — Detect &amp; Remove Invisible Unicode Characters</title>
+<meta name="description" content="Free offline Unicode toolkit — detect and remove invisible zero-width & bidi characters, watermark text, and browse a searchable special-character library.">
+<meta name="keywords" content="unicode toolkit, zero-width characters, invisible character detector, remove invisible characters, unicode sanitizer, zero width space, ZWSP, ZWNJ, bidi override, trojan source, text watermark, unicode security, homoglyph, special characters list">
+<meta name="author" content="Hiberius">
+<meta name="robots" content="index, follow">
+<link rel="canonical" href="https://hiberius.github.io/hiberius-unicode-toolkit/">
+
+<!-- ── Open Graph / Twitter ────────────────────────────────────── -->
+<meta property="og:type" content="website">
+<meta property="og:title" content="HIBERIUS — Unicode Toolkit">
+<meta property="og:description" content="Detect, remove and watermark invisible Unicode characters. Free, offline, single-file. Built by Hiberius.">
+<meta property="og:url" content="https://hiberius.github.io/hiberius-unicode-toolkit/">
+<meta property="og:site_name" content="HIBERIUS Unicode Toolkit">
+<meta property="og:image" content="https://hiberius.github.io/hiberius-unicode-toolkit/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="HIBERIUS — Unicode Toolkit">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="HIBERIUS — Unicode Toolkit">
+<meta name="twitter:description" content="Detect, remove and watermark invisible Unicode characters. Free, offline, single-file.">
+<meta name="twitter:image" content="https://hiberius.github.io/hiberius-unicode-toolkit/og-image.png">
+
+<!-- ── Favicon (inline, no external request) ───────────────────── -->
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 120'%3E%3Cpath d='M50 8C30 8 18 22 18 40c0 15 4 25 8 35 2 7-4 15 0 21 4 4 10-2 14-8 3-3 7-4 10-4s7 1 10 4c4 6 10 12 14 8 4-6-2-14 0-21 4-10 8-20 8-35 0-18-12-32-32-32z' fill='none' stroke='%2339FF14' stroke-width='4'/%3E%3Ccircle cx='40' cy='42' r='5' fill='%2339FF14'/%3E%3Ccircle cx='60' cy='42' r='5' fill='%2339FF14'/%3E%3C/svg%3E">
+
+<!-- ── Structured data (JSON-LD) ───────────────────────────────── -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "HIBERIUS Unicode Toolkit",
+  "applicationCategory": "DeveloperApplication",
+  "operatingSystem": "Any (browser-based)",
+  "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+  "description": "Free offline single-file Unicode toolkit to detect, remove and watermark invisible zero-width and bidirectional characters, with a searchable library of special Unicode characters.",
+  "author": { "@type": "Person", "name": "Hiberius", "url": "https://github.com/Hiberius" },
+  "url": "https://hiberius.github.io/hiberius-unicode-toolkit/",
+  "softwareVersion": "3.0",
+  "license": "https://opensource.org/licenses/MIT"
+}
+</script>
+
+<style>
+  :root {
+    --neon: #39FF14;
+    --neon-dim: #1aad08;
+    --neon-soft: #8affa0;
+    --warn: #ffb300;
+    --danger: #ff3b3b;
+    --info: #29d3ff;
+    --bg: #000000;
+    --surface: rgba(0,8,0,0.9);
+    --surface-2: rgba(0,14,0,0.7);
+    --border: rgba(57,255,20,0.3);
+    --border-soft: rgba(57,255,20,0.15);
+    --mono: ui-monospace, "SF Mono", "Cascadia Code", "Fira Code", Menlo, Consolas, "Liberation Mono", monospace;
+    --radius: 4px;
+    --dur: 200ms;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    width: 100%;
+    min-height: 100vh;
+    background: var(--bg);
+    color: var(--neon);
+    font-family: var(--mono);
+    overflow-x: hidden;
+  }
+
+  /* ── Ambient scanlines ── */
+  body::before {
+    content: "";
+    position: fixed; inset: 0;
+    background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.18) 2px, rgba(0,0,0,0.18) 4px);
+    pointer-events: none;
+    z-index: 9999;
+  }
+
+  /* ── Grid floor ── */
+  .grid-floor {
+    position: fixed; bottom: 0; left: 0; width: 100%; height: 220px;
+    background:
+      linear-gradient(rgba(57,255,20,0.10) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(57,255,20,0.10) 1px, transparent 1px);
+    background-size: 40px 40px;
+    background-position: center bottom;
+    -webkit-mask-image: linear-gradient(to top, rgba(0,0,0,0.6), transparent);
+    mask-image: linear-gradient(to top, rgba(0,0,0,0.6), transparent);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .wrapper {
+    position: relative; z-index: 10;
+    max-width: 880px; margin: 0 auto;
+    padding: 40px 20px 180px;
+    display: flex; flex-direction: column; align-items: center; gap: 28px;
+  }
+
+  /* ── Ghost mascot ── */
+  .ghost-wrap {
+    width: 84px; height: 100px;
+    filter: drop-shadow(0 0 14px #39FF14) drop-shadow(0 0 34px rgba(57,255,20,0.45));
+    animation: float 4s ease-in-out infinite;
+  }
+  @keyframes float { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-9px); } }
+
+  .title-block { text-align: center; }
+  h1 {
+    font-family: var(--mono);
+    font-size: clamp(1.9rem, 6vw, 3rem);
+    font-weight: 800;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--neon);
+    text-shadow: 0 0 10px var(--neon), 0 0 30px var(--neon), 0 0 60px rgba(57,255,20,0.5);
+  }
+  .subtitle {
+    font-size: 0.72rem;
+    letter-spacing: 0.32em;
+    color: var(--neon-dim);
+    margin-top: 8px;
+    text-transform: uppercase;
+  }
+  .version-badge {
+    display: inline-block;
+    margin-top: 10px;
+    padding: 3px 12px;
+    border: 1px solid var(--border-soft);
+    font-size: 0.62rem;
+    letter-spacing: 0.22em;
+    color: var(--neon-dim);
+    background: rgba(57,255,20,0.05);
+    text-transform: uppercase;
+  }
+
+  /* ── Privacy banner ── */
+  .privacy {
+    width: 100%;
+    border: 1px solid var(--border-soft);
+    background: rgba(0,10,0,0.7);
+    color: var(--neon-soft);
+    font-size: 0.68rem;
+    letter-spacing: 0.05em;
+    line-height: 1.7;
+    padding: 10px 14px;
+    text-align: center;
+  }
+  .privacy strong { color: var(--neon); font-weight: 700; }
+
+  /* ── Tabs ── */
+  .tabs {
+    display: flex; flex-wrap: wrap; gap: 8px;
+    width: 100%;
+    border-bottom: 1px solid var(--border-soft);
+    padding-bottom: 4px;
+  }
+  .tab {
+    font-family: var(--mono);
+    font-size: 0.66rem;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    padding: 10px 16px;
+    border: 1px solid transparent;
+    background: transparent;
+    color: var(--neon-dim);
+    cursor: pointer;
+    transition: color var(--dur), border-color var(--dur), background var(--dur);
+  }
+  .tab:hover { color: var(--neon-soft); }
+  .tab[aria-selected="true"] {
+    color: var(--neon);
+    border-color: var(--border);
+    border-bottom-color: var(--bg);
+    background: rgba(57,255,20,0.08);
+    text-shadow: 0 0 8px var(--neon);
+  }
+  .tab:focus-visible { outline: 2px solid var(--neon); outline-offset: 2px; }
+
+  .panel {
+    width: 100%;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    padding: 22px;
+    position: relative;
+    box-shadow: 0 0 20px rgba(57,255,20,0.07), inset 0 0 20px rgba(57,255,20,0.03);
+  }
+  .panel::before {
+    content: "";
+    position: absolute; top: 0; left: 0; right: 0; height: 2px;
+    background: linear-gradient(90deg, transparent, var(--neon), transparent);
+    box-shadow: 0 0 8px var(--neon);
+  }
+  [hidden] { display: none !important; }
+
+  .panel-label {
+    font-size: 0.6rem;
+    letter-spacing: 0.32em;
+    color: var(--neon-dim);
+    text-transform: uppercase;
+    margin-bottom: 14px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .panel-label::after { content: ""; flex: 1; height: 1px; background: linear-gradient(90deg, var(--border), transparent); }
+
+  .desc {
+    font-size: 0.72rem;
+    color: var(--neon-soft);
+    line-height: 1.7;
+    margin-bottom: 14px;
+    letter-spacing: 0.02em;
+  }
+
+  .controls-row { display: flex; gap: 12px; align-items: center; margin-bottom: 14px; flex-wrap: wrap; }
+  .controls-row label { font-size: 0.72rem; color: var(--neon-dim); letter-spacing: 0.08em; }
+
+  input[type="number"], input[type="text"], select {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    color: var(--neon);
+    font-family: var(--mono);
+    font-size: 0.85rem;
+    padding: 6px 10px;
+    outline: none;
+    transition: border-color var(--dur), box-shadow var(--dur);
+  }
+  input[type="number"] { width: 64px; text-align: center; -moz-appearance: textfield; }
+  input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; }
+  input[type="text"] { flex: 1; min-width: 180px; }
+  select { cursor: pointer; }
+  select option { background: #001000; color: var(--neon); }
+  input:focus, select:focus { border-color: var(--neon); box-shadow: 0 0 8px rgba(57,255,20,0.3); }
+
+  textarea {
+    width: 100%;
+    min-height: 150px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    color: var(--neon);
+    font-family: var(--mono);
+    font-size: 0.9rem;
+    line-height: 1.6;
+    padding: 14px 16px;
+    resize: vertical;
+    outline: none;
+    transition: border-color var(--dur), box-shadow var(--dur);
+    letter-spacing: 0.03em;
+  }
+  textarea::placeholder { color: rgba(57,255,20,0.25); }
+  textarea:focus { border-color: var(--neon); box-shadow: 0 0 16px rgba(57,255,20,0.2), inset 0 0 10px rgba(57,255,20,0.05); }
+  textarea[readonly] { background: rgba(0,15,0,0.5); cursor: default; }
+
+  fieldset {
+    border: 1px solid var(--border-soft);
+    padding: 12px 14px;
+    margin-bottom: 14px;
+  }
+  legend { font-size: 0.62rem; letter-spacing: 0.2em; color: var(--neon-dim); text-transform: uppercase; padding: 0 6px; }
+  .checks { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 8px 16px; }
+  .check { display: flex; align-items: center; gap: 8px; font-size: 0.72rem; color: var(--neon-soft); cursor: pointer; }
+  .check input { accent-color: var(--neon); width: 15px; height: 15px; cursor: pointer; }
+
+  .btn-row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 12px; }
+  button.action {
+    font-family: var(--mono);
+    font-size: 0.64rem;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    padding: 10px 22px;
+    border: 1px solid var(--neon);
+    background: transparent;
+    color: var(--neon);
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+    transition: background var(--dur), box-shadow var(--dur), transform var(--dur);
+    text-shadow: 0 0 8px var(--neon);
+    box-shadow: 0 0 10px rgba(57,255,20,0.2), inset 0 0 10px rgba(57,255,20,0.03);
+  }
+  button.action:hover { background: rgba(57,255,20,0.12); box-shadow: 0 0 20px rgba(57,255,20,0.4), inset 0 0 15px rgba(57,255,20,0.08); }
+  button.action:active { transform: scale(0.97); }
+  button.action:focus-visible { outline: 2px solid var(--neon); outline-offset: 2px; }
+  button.secondary { border-color: var(--border); color: var(--neon-dim); text-shadow: none; box-shadow: none; }
+  button.secondary:hover { border-color: var(--neon-dim); background: rgba(57,255,20,0.05); box-shadow: 0 0 10px rgba(57,255,20,0.1); }
+
+  .arrow-divider { font-size: 1.3rem; color: var(--neon-dim); text-align: center; text-shadow: 0 0 12px var(--neon); animation: pulse 1.6s ease-in-out infinite; }
+  @keyframes pulse { 0%,100% { opacity: 0.5; } 50% { opacity: 1; } }
+
+  .stats {
+    display: flex; gap: 18px; flex-wrap: wrap;
+    font-size: 0.66rem; color: var(--neon-dim);
+    letter-spacing: 0.08em;
+    border-top: 1px solid var(--border-soft);
+    padding-top: 12px; margin-top: 14px;
+  }
+  .stats span { display: flex; gap: 6px; align-items: center; }
+  .stats strong { color: var(--neon); font-weight: 700; }
+
+  /* ── Scan visualiser ── */
+  .viz {
+    width: 100%;
+    min-height: 90px;
+    max-height: 320px;
+    overflow: auto;
+    border: 1px solid var(--border);
+    background: var(--surface-2);
+    padding: 14px 16px;
+    font-size: 0.9rem;
+    line-height: 1.9;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+  .chip {
+    display: inline-block;
+    font-size: 0.6rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    padding: 1px 5px;
+    margin: 0 1px;
+    border-radius: 3px;
+    vertical-align: middle;
+    cursor: help;
+  }
+  .chip.zw { background: rgba(255,179,0,0.18); color: var(--warn); border: 1px solid rgba(255,179,0,0.5); }
+  .chip.bidi { background: rgba(255,59,59,0.16); color: var(--danger); border: 1px solid rgba(255,59,59,0.5); }
+  .chip.space { background: rgba(41,211,255,0.14); color: var(--info); border: 1px solid rgba(41,211,255,0.45); }
+  .chip.ctrl { background: rgba(200,120,255,0.16); color: #c877ff; border: 1px solid rgba(200,120,255,0.5); }
+
+  .report { list-style: none; margin-top: 14px; display: flex; flex-direction: column; gap: 6px; }
+  .report li {
+    display: flex; flex-wrap: wrap; gap: 10px; align-items: center;
+    font-size: 0.7rem;
+    border: 1px solid var(--border-soft);
+    background: rgba(0,10,0,0.5);
+    padding: 8px 12px;
+  }
+  .report .cp { color: var(--neon); font-weight: 700; min-width: 74px; }
+  .report .nm { color: var(--neon-soft); flex: 1; min-width: 160px; }
+  .report .ct { color: var(--neon-dim); text-transform: uppercase; letter-spacing: 0.1em; font-size: 0.62rem; }
+  .report .qt { color: var(--neon); }
+
+  .verdict { font-size: 0.8rem; letter-spacing: 0.06em; padding: 10px 14px; border: 1px solid var(--border); margin-bottom: 4px; }
+  .verdict.clean { color: var(--neon); background: rgba(57,255,20,0.08); }
+  .verdict.dirty { color: var(--warn); background: rgba(255,179,0,0.08); border-color: rgba(255,179,0,0.5); }
+
+  /* ── Reference table ── */
+  .ref-controls { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; align-items: center; }
+  .ref-table { width: 100%; border-collapse: collapse; font-size: 0.72rem; }
+  .ref-table caption { text-align: left; color: var(--neon-dim); font-size: 0.62rem; letter-spacing: 0.2em; text-transform: uppercase; padding-bottom: 8px; }
+  .ref-table th, .ref-table td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--border-soft); }
+  .ref-table th { color: var(--neon-dim); text-transform: uppercase; letter-spacing: 0.12em; font-size: 0.6rem; position: sticky; top: 0; background: var(--surface); }
+  .ref-table td.cp { color: var(--neon); font-weight: 700; white-space: nowrap; }
+  .ref-table td.nm { color: var(--neon-soft); }
+  .ref-table td.cat { color: var(--neon-dim); text-transform: uppercase; font-size: 0.6rem; letter-spacing: 0.08em; }
+  .ref-scroll { max-height: 460px; overflow: auto; border: 1px solid var(--border-soft); }
+  .copy-btn {
+    font-family: var(--mono); font-size: 0.6rem; letter-spacing: 0.1em;
+    padding: 4px 10px; border: 1px solid var(--border); background: transparent;
+    color: var(--neon); cursor: pointer; text-transform: uppercase; transition: background var(--dur);
+  }
+  .copy-btn:hover { background: rgba(57,255,20,0.12); }
+  .copy-btn:focus-visible { outline: 2px solid var(--neon); outline-offset: 2px; }
+
+  /* ── Toast ── */
+  .toast {
+    position: fixed; top: 20px; right: 20px;
+    background: rgba(0,20,0,0.96);
+    border: 1px solid var(--neon);
+    color: var(--neon);
+    font-size: 0.66rem;
+    letter-spacing: 0.16em;
+    padding: 10px 18px;
+    text-transform: uppercase;
+    box-shadow: 0 0 20px rgba(57,255,20,0.4);
+    z-index: 99999;
+    opacity: 0; pointer-events: none;
+    transform: translateY(-10px);
+    transition: opacity var(--dur), transform var(--dur);
+  }
+  .toast.show { opacity: 1; transform: translateY(0); }
+
+  .footer {
+    text-align: center;
+    font-size: 0.58rem;
+    letter-spacing: 0.2em;
+    color: rgba(57,255,20,0.25);
+    text-transform: uppercase;
+    line-height: 2;
+    padding-top: 6px;
+  }
+  .footer a { color: var(--neon-dim); text-decoration: none; }
+  .footer a:hover { color: var(--neon); }
+
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
+  ::-webkit-scrollbar-track { background: #000; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--neon-dim); }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; transition: none !important; }
+  }
+
+  @media (max-width: 560px) {
+    .wrapper { padding: 28px 14px 160px; }
+    .tab { flex: 1 1 auto; text-align: center; }
+  }
+</style>
+</head>
+<body>
+
+<div class="grid-floor" aria-hidden="true"></div>
+<div class="toast" id="toast" role="status" aria-live="polite">Copied</div>
+
+<main class="wrapper">
+
+  <div class="ghost-wrap" aria-hidden="true">
+    <svg viewBox="0 0 100 120" xmlns="http://www.w3.org/2000/svg" width="84" height="100" role="img" aria-label="Hiberius ghost logo">
+      <defs>
+        <filter id="glow"><feGaussianBlur stdDeviation="2.5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+      </defs>
+      <path d="M50,8 C30,8 18,22 18,40 C18,55 22,65 26,75 C28,82 22,90 26,96 C30,100 36,94 40,88 C43,85 47,84 50,84 C53,84 57,85 60,88 C64,94 70,100 74,96 C78,90 72,82 74,75 C78,65 82,55 82,40 C82,22 70,8 50,8 Z"
+        fill="none" stroke="#39FF14" stroke-width="2" filter="url(#glow)"/>
+      <ellipse cx="40" cy="40" rx="5" ry="4" fill="#39FF14" filter="url(#glow)"/>
+      <ellipse cx="60" cy="40" rx="5" ry="4" fill="#39FF14" filter="url(#glow)"/>
+      <path d="M40,55 C43,58 50,58 57,55" fill="none" stroke="#39FF14" stroke-width="1" opacity="0.3"/>
+    </svg>
+  </div>
+
+  <header class="title-block">
+    <h1>HIBERIUS</h1>
+    <p class="subtitle">// Unicode Toolkit //</p>
+    <span class="version-badge">v3.0 — Inspect · Watermark · Sanitize</span>
+  </header>
+
+  <p class="privacy">
+    <strong>100% offline.</strong> Every operation runs locally in your browser.
+    No text is ever uploaded, logged or sent anywhere — this page makes zero network requests.
+  </p>
+
+  <nav class="tabs" role="tablist" aria-label="Tools">
+    <button type="button" class="tab" role="tab" id="tab-inject" aria-controls="pane-inject" aria-selected="true">01 · Inject</button>
+    <button type="button" class="tab" role="tab" id="tab-scan" aria-controls="pane-scan" aria-selected="false" tabindex="-1">02 · Scan</button>
+    <button type="button" class="tab" role="tab" id="tab-clean" aria-controls="pane-clean" aria-selected="false" tabindex="-1">03 · Clean</button>
+    <button type="button" class="tab" role="tab" id="tab-ref" aria-controls="pane-ref" aria-selected="false" tabindex="-1">04 · Library</button>
+  </nav>
+
+  <!-- ══════════ 01 · INJECT ══════════ -->
+  <section class="panel" id="pane-inject" role="tabpanel" aria-labelledby="tab-inject">
+    <h2 class="panel-label">01 — Inject / Watermark</h2>
+    <p class="desc">
+      Insert an invisible character at a fixed interval to <strong>watermark</strong> or fingerprint text
+      (e.g. to trace which copy of a document was leaked). Fully reversible with <em>Scan</em> and <em>Clean</em>.
+      Optionally hide a short secret message using zero-width steganography.
+    </p>
+
+    <div class="controls-row">
+      <label for="interval">Inject every</label>
+      <input type="number" id="interval" value="2" min="1" max="99">
+      <label for="charType">chars — type:</label>
+      <select id="charType">
+        <option value="200C">U+200C · ZWNJ (non-joiner)</option>
+        <option value="200B">U+200B · ZWSP (zero-width space)</option>
+        <option value="200D">U+200D · ZWJ (zero-width joiner)</option>
+        <option value="FEFF">U+FEFF · BOM (no-break)</option>
+        <option value="2060">U+2060 · Word Joiner</option>
+        <option value="2061">U+2061 · Function Application</option>
+      </select>
+    </div>
+
+    <fieldset>
+      <legend>Optional: hide a secret message (steganography)</legend>
+      <div class="controls-row">
+        <input type="text" id="secretMsg" aria-label="Secret message to embed invisibly" placeholder="Secret message to embed invisibly (optional)…" autocomplete="off" spellcheck="false">
+      </div>
+    </fieldset>
+
+    <label for="injectInput" class="panel-label" style="margin-top:4px">Input</label>
+    <textarea id="injectInput" placeholder="// Paste the text you want to watermark…" spellcheck="false"></textarea>
+
+    <div class="btn-row">
+      <button type="button" class="action" id="btnInject">Inject</button>
+      <button type="button" class="secondary" id="btnInjectClear">Clear</button>
+    </div>
+
+    <div class="arrow-divider" aria-hidden="true">▼</div>
+
+    <label for="injectOutput" class="panel-label">Output</label>
+    <textarea id="injectOutput" readonly placeholder="// Watermarked output appears here…" spellcheck="false"></textarea>
+    <div class="btn-row">
+      <button type="button" class="action" id="btnInjectCopy">Copy output</button>
+      <button type="button" class="secondary" id="btnInjectDownload">Download .txt</button>
+    </div>
+    <div class="stats" id="injectStats" hidden>
+      <span>Input: <strong id="statIn">0</strong></span>
+      <span>Injected: <strong id="statInj">0</strong></span>
+      <span>Hidden bits: <strong id="statBits">0</strong></span>
+      <span>Output: <strong id="statOut">0</strong></span>
+    </div>
+  </section>
+
+  <!-- ══════════ 02 · SCAN ══════════ -->
+  <section class="panel" id="pane-scan" role="tabpanel" aria-labelledby="tab-scan" hidden>
+    <h2 class="panel-label">02 — Scan / Detect</h2>
+    <p class="desc">
+      Paste any text to reveal <strong>every invisible or suspicious character</strong> — zero-width formatting,
+      bidirectional overrides (<em>Trojan Source</em>), unusual spaces and control codes. Each is highlighted inline
+      and listed with its code point. Also extracts any hidden steganographic message.
+    </p>
+
+    <label for="scanInput" class="panel-label">Input</label>
+    <textarea id="scanInput" placeholder="// Paste text to inspect…" spellcheck="false"></textarea>
+
+    <div class="btn-row">
+      <button type="button" class="action" id="btnScan">Scan</button>
+      <button type="button" class="secondary" id="btnScanClear">Clear</button>
+    </div>
+
+    <div id="scanResult" hidden>
+      <div class="arrow-divider" aria-hidden="true">▼</div>
+      <div class="verdict" id="scanVerdict" role="status" aria-live="polite"></div>
+      <div class="panel-label">Highlighted</div>
+      <div class="viz" id="scanViz" aria-label="Highlighted input with suspicious characters marked"></div>
+      <div id="scanSecret" hidden></div>
+      <div class="panel-label" style="margin-top:16px">Findings</div>
+      <ul class="report" id="scanReport"></ul>
+      <div class="stats">
+        <span>Total chars: <strong id="scanTotal">0</strong></span>
+        <span>Hidden chars: <strong id="scanHidden">0</strong></span>
+        <span>Unique types: <strong id="scanTypes">0</strong></span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════ 03 · CLEAN ══════════ -->
+  <section class="panel" id="pane-clean" role="tabpanel" aria-labelledby="tab-clean" hidden>
+    <h2 class="panel-label">03 — Clean / Sanitize</h2>
+    <p class="desc">
+      Strip hidden and dangerous characters from untrusted text before storing, publishing or committing it.
+      Ideal for sanitizing pasted content, user input and source code (defends against <em>Trojan Source</em> attacks).
+    </p>
+
+    <fieldset>
+      <legend>Sanitization rules</legend>
+      <div class="checks">
+        <label class="check"><input type="checkbox" id="optZW" checked> Remove zero-width &amp; invisible formatting</label>
+        <label class="check"><input type="checkbox" id="optBidi" checked> Remove bidirectional controls (Trojan Source)</label>
+        <label class="check"><input type="checkbox" id="optCtrl" checked> Remove other control characters</label>
+        <label class="check"><input type="checkbox" id="optSpace"> Normalize unusual spaces &amp; line separators</label>
+        <label class="check"><input type="checkbox" id="optCollapse"> Collapse repeated whitespace</label>
+        <label class="check"><input type="checkbox" id="optTrim"> Trim each line</label>
+        <label class="check"><input type="checkbox" id="optNFC"> Unicode normalize (NFC)</label>
+      </div>
+    </fieldset>
+
+    <label for="cleanInput" class="panel-label">Input</label>
+    <textarea id="cleanInput" placeholder="// Paste text to sanitize…" spellcheck="false"></textarea>
+
+    <div class="btn-row">
+      <button type="button" class="action" id="btnClean">Clean</button>
+      <button type="button" class="secondary" id="btnCleanClear">Clear</button>
+    </div>
+
+    <div class="arrow-divider" aria-hidden="true">▼</div>
+
+    <label for="cleanOutput" class="panel-label">Sanitized output</label>
+    <textarea id="cleanOutput" readonly placeholder="// Clean text appears here…" spellcheck="false"></textarea>
+    <div class="btn-row">
+      <button type="button" class="action" id="btnCleanCopy">Copy output</button>
+      <button type="button" class="secondary" id="btnCleanDownload">Download .txt</button>
+    </div>
+    <div class="stats" id="cleanStats" hidden>
+      <span>Before: <strong id="cleanBefore">0</strong></span>
+      <span>Removed: <strong id="cleanRemoved">0</strong></span>
+      <span>After: <strong id="cleanAfter">0</strong></span>
+    </div>
+  </section>
+
+  <!-- ══════════ 04 · LIBRARY ══════════ -->
+  <section class="panel" id="pane-ref" role="tabpanel" aria-labelledby="tab-ref" hidden>
+    <h2 class="panel-label">04 — Character Library</h2>
+    <p class="desc">
+      A searchable reference of special Unicode characters — invisible formatters, bidi controls, unusual spaces
+      and handy symbols. Click <em>Copy</em> to grab any character. Filter by name, code point or category.
+    </p>
+    <div class="ref-controls">
+      <input type="text" id="refSearch" placeholder="Search name, code point or category…" aria-label="Search characters" autocomplete="off">
+      <select id="refCat" aria-label="Filter by category">
+        <option value="">All categories</option>
+      </select>
+    </div>
+    <div class="ref-scroll">
+      <table class="ref-table">
+        <caption>Special &amp; useful Unicode characters</caption>
+        <thead>
+          <tr><th scope="col">Char</th><th scope="col">Code point</th><th scope="col">Name</th><th scope="col">Category</th><th scope="col">Copy</th></tr>
+        </thead>
+        <tbody id="refBody"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <footer class="footer">
+    HIBERIUS v3.0 — Unicode Toolkit · 100% client-side · Built with Claude Fable 5<br>
+    <a href="https://github.com/Hiberius/hiberius-unicode-toolkit" rel="noopener noreferrer">github.com/Hiberius/hiberius-unicode-toolkit</a>
+  </footer>
+
+</main>
+
+<script>
+"use strict";
+(function () {
+  /* ────────────────────────────────────────────────────────────
+     Single source of truth: the special-character dataset.
+     Powers Scan (detection), Clean (removal) and Library (reference).
+     cat: zw = zero-width/invisible · bidi = direction control
+          space = unusual space/line sep · ctrl = control code · sym = useful symbol
+     ──────────────────────────────────────────────────────────── */
+  var CHARS = [
+    // Zero-width & invisible formatting
+    { cp: 0x200B, name: "Zero Width Space (ZWSP)", cat: "zw" },
+    { cp: 0x200C, name: "Zero Width Non-Joiner (ZWNJ)", cat: "zw" },
+    { cp: 0x200D, name: "Zero Width Joiner (ZWJ)", cat: "zw" },
+    { cp: 0x2060, name: "Word Joiner", cat: "zw" },
+    { cp: 0x2061, name: "Function Application", cat: "zw" },
+    { cp: 0x2062, name: "Invisible Times", cat: "zw" },
+    { cp: 0x2063, name: "Invisible Separator", cat: "zw" },
+    { cp: 0x2064, name: "Invisible Plus", cat: "zw" },
+    { cp: 0xFEFF, name: "Zero Width No-Break Space (BOM)", cat: "zw" },
+    { cp: 0x00AD, name: "Soft Hyphen", cat: "zw" },
+    { cp: 0x034F, name: "Combining Grapheme Joiner", cat: "zw" },
+    { cp: 0x061C, name: "Arabic Letter Mark", cat: "zw" },
+    { cp: 0x115F, name: "Hangul Choseong Filler", cat: "zw" },
+    { cp: 0x1160, name: "Hangul Jungseong Filler", cat: "zw" },
+    { cp: 0x17B4, name: "Khmer Vowel Inherent Aq", cat: "zw" },
+    { cp: 0x17B5, name: "Khmer Vowel Inherent Aa", cat: "zw" },
+    { cp: 0x180E, name: "Mongolian Vowel Separator", cat: "zw" },
+    { cp: 0x3164, name: "Hangul Filler", cat: "zw" },
+    { cp: 0xFFA0, name: "Halfwidth Hangul Filler", cat: "zw" },
+    // Bidirectional controls (Trojan Source)
+    { cp: 0x200E, name: "Left-to-Right Mark (LRM)", cat: "bidi" },
+    { cp: 0x200F, name: "Right-to-Left Mark (RLM)", cat: "bidi" },
+    { cp: 0x202A, name: "Left-to-Right Embedding (LRE)", cat: "bidi" },
+    { cp: 0x202B, name: "Right-to-Left Embedding (RLE)", cat: "bidi" },
+    { cp: 0x202C, name: "Pop Directional Formatting (PDF)", cat: "bidi" },
+    { cp: 0x202D, name: "Left-to-Right Override (LRO)", cat: "bidi" },
+    { cp: 0x202E, name: "Right-to-Left Override (RLO)", cat: "bidi" },
+    { cp: 0x2066, name: "Left-to-Right Isolate (LRI)", cat: "bidi" },
+    { cp: 0x2067, name: "Right-to-Left Isolate (RLI)", cat: "bidi" },
+    { cp: 0x2068, name: "First Strong Isolate (FSI)", cat: "bidi" },
+    { cp: 0x2069, name: "Pop Directional Isolate (PDI)", cat: "bidi" },
+    // Unusual spaces & separators
+    { cp: 0x00A0, name: "No-Break Space (NBSP)", cat: "space" },
+    { cp: 0x1680, name: "Ogham Space Mark", cat: "space" },
+    { cp: 0x2000, name: "En Quad", cat: "space" },
+    { cp: 0x2001, name: "Em Quad", cat: "space" },
+    { cp: 0x2002, name: "En Space", cat: "space" },
+    { cp: 0x2003, name: "Em Space", cat: "space" },
+    { cp: 0x2004, name: "Three-Per-Em Space", cat: "space" },
+    { cp: 0x2005, name: "Four-Per-Em Space", cat: "space" },
+    { cp: 0x2006, name: "Six-Per-Em Space", cat: "space" },
+    { cp: 0x2007, name: "Figure Space", cat: "space" },
+    { cp: 0x2008, name: "Punctuation Space", cat: "space" },
+    { cp: 0x2009, name: "Thin Space", cat: "space" },
+    { cp: 0x200A, name: "Hair Space", cat: "space" },
+    { cp: 0x202F, name: "Narrow No-Break Space", cat: "space" },
+    { cp: 0x205F, name: "Medium Mathematical Space", cat: "space" },
+    { cp: 0x3000, name: "Ideographic Space", cat: "space" },
+    { cp: 0x2028, name: "Line Separator", cat: "space" },
+    { cp: 0x2029, name: "Paragraph Separator", cat: "space" },
+    // Useful visible symbols (copy/paste helpers)
+    { cp: 0x2192, name: "Rightwards Arrow", cat: "sym" },
+    { cp: 0x2190, name: "Leftwards Arrow", cat: "sym" },
+    { cp: 0x2191, name: "Upwards Arrow", cat: "sym" },
+    { cp: 0x2193, name: "Downwards Arrow", cat: "sym" },
+    { cp: 0x21D2, name: "Rightwards Double Arrow", cat: "sym" },
+    { cp: 0x2022, name: "Bullet", cat: "sym" },
+    { cp: 0x2013, name: "En Dash", cat: "sym" },
+    { cp: 0x2014, name: "Em Dash", cat: "sym" },
+    { cp: 0x2026, name: "Horizontal Ellipsis", cat: "sym" },
+    { cp: 0x00D7, name: "Multiplication Sign", cat: "sym" },
+    { cp: 0x2212, name: "Minus Sign", cat: "sym" },
+    { cp: 0x00B7, name: "Middle Dot", cat: "sym" },
+    { cp: 0x2713, name: "Check Mark", cat: "sym" },
+    { cp: 0x2717, name: "Ballot X", cat: "sym" },
+    { cp: 0x2605, name: "Black Star", cat: "sym" },
+    { cp: 0x2665, name: "Black Heart Suit", cat: "sym" },
+    { cp: 0x00A9, name: "Copyright Sign", cat: "sym" },
+    { cp: 0x00AE, name: "Registered Sign", cat: "sym" },
+    { cp: 0x2122, name: "Trade Mark Sign", cat: "sym" },
+    { cp: 0x20AC, name: "Euro Sign", cat: "sym" },
+    { cp: 0x00A3, name: "Pound Sign", cat: "sym" },
+    { cp: 0x00B0, name: "Degree Sign", cat: "sym" },
+    { cp: 0x2248, name: "Almost Equal To", cat: "sym" },
+    { cp: 0x2260, name: "Not Equal To", cat: "sym" },
+    { cp: 0x221E, name: "Infinity", cat: "sym" }
+  ];
+
+  var CAT_LABEL = { zw: "Zero-width", bidi: "Bidi control", space: "Unusual space", ctrl: "Control", sym: "Symbol" };
+  var CAT_CHIP = { zw: "zw", bidi: "bidi", space: "space", ctrl: "ctrl", sym: "sym" };
+
+  // Lookup by code point for O(1) detection.
+  var BY_CP = {};
+  CHARS.forEach(function (c) { BY_CP[c.cp] = c; });
+
+  // Steganography sentinels — deliberately NOT any character offered in the
+  // Inject dropdown, and distinct from the bit characters, so a watermark can
+  // never be mistaken for a payload delimiter and vice versa.
+  var STEG_START = "\u2062\u2064"; // Invisible Times + Invisible Plus
+  var STEG_END = "\u2064\u2062";   // Invisible Plus + Invisible Times
+  var STEG_ZERO = 0x200B;          // bit 0 (ZWSP)
+  var STEG_ONE = 0x200C;           // bit 1 (ZWNJ)
+
+  var $ = function (id) { return document.getElementById(id); };
+  var cpHex = function (cp) { return "U+" + cp.toString(16).toUpperCase().padStart(4, "0"); };
+
+  /* ── Classification helpers ── */
+  function classify(cp) {
+    if (BY_CP[cp]) { return BY_CP[cp].cat; }
+    // C0 controls (excluding tab/newline/carriage return) and C1 controls
+    if ((cp <= 0x1F && cp !== 0x09 && cp !== 0x0A && cp !== 0x0D) || (cp >= 0x7F && cp <= 0x9F)) {
+      return "ctrl";
+    }
+    return null;
+  }
+  function nameFor(cp) {
+    if (BY_CP[cp]) { return BY_CP[cp].name; }
+    return "Control Character";
+  }
+
+  /* ── Toast ── */
+  var toastTimer = null;
+  function toast(msg) {
+    var t = $("toast");
+    t.textContent = msg;
+    t.classList.add("show");
+    if (toastTimer) { clearTimeout(toastTimer); }
+    toastTimer = setTimeout(function () { t.classList.remove("show"); }, 1800);
+  }
+
+  function copyText(text) {
+    if (!text) { return; }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () { toast("Copied"); }).catch(function () { toast("Copy failed"); });
+    } else {
+      toast("Clipboard unavailable");
+    }
+  }
+
+  function download(text, prefix) {
+    if (!text) { return; }
+    var blob = new Blob([text], { type: "text/plain;charset=utf-8" });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement("a");
+    a.href = url;
+    a.download = prefix + "_" + new Date().toISOString().replace(/[:.]/g, "-") + ".txt";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
+  /* ── Steganography: encode secret into zero-width bits ── */
+  function encodeSecret(secret) {
+    if (!secret) { return ""; }
+    var bytes = new TextEncoder().encode(secret);
+    var out = STEG_START;
+    for (var i = 0; i < bytes.length; i++) {
+      var bits = bytes[i].toString(2).padStart(8, "0");
+      for (var b = 0; b < 8; b++) {
+        out += String.fromCodePoint(bits[b] === "1" ? STEG_ONE : STEG_ZERO);
+      }
+    }
+    out += STEG_END;
+    return out;
+  }
+
+  function decodeSecret(text) {
+    var start = text.indexOf(STEG_START);
+    if (start === -1) { return null; }
+    var from = start + STEG_START.length;
+    var end = text.indexOf(STEG_END, from);
+    if (end === -1) { return null; }
+    var payload = text.slice(from, end);
+    // A genuine payload contains ONLY bit characters. Anything else = false match.
+    var bits = "";
+    for (var i = 0; i < payload.length; i++) {
+      var cp = payload.codePointAt(i);
+      if (cp === STEG_ONE) { bits += "1"; }
+      else if (cp === STEG_ZERO) { bits += "0"; }
+      else { return null; }
+    }
+    if (bits.length === 0 || bits.length % 8 !== 0) { return null; }
+    var bytes = [];
+    for (var j = 0; j < bits.length; j += 8) {
+      bytes.push(parseInt(bits.slice(j, j + 8), 2));
+    }
+    var decoded;
+    try {
+      decoded = new TextDecoder("utf-8", { fatal: true }).decode(new Uint8Array(bytes));
+    } catch (e) {
+      return null; // invalid UTF-8 → not a real message
+    }
+    // Reject empty, replacement-char or control-only results.
+    if (!decoded || decoded.indexOf("\uFFFD") !== -1) { return null; }
+    for (var k = 0; k < decoded.length; k++) {
+      var d = decoded.charCodeAt(k);
+      if (!(d <= 0x1F || (d >= 0x7F && d <= 0x9F))) { return decoded; }
+    }
+    return null;
+  }
+
+  /* ══════════ Tabs ══════════ */
+  var tabs = Array.prototype.slice.call(document.querySelectorAll(".tab"));
+  function selectTab(tab) {
+    tabs.forEach(function (t) {
+      var selected = t === tab;
+      t.setAttribute("aria-selected", selected ? "true" : "false");
+      t.tabIndex = selected ? 0 : -1;
+      $(t.getAttribute("aria-controls")).hidden = !selected;
+    });
+    tab.focus();
+  }
+  tabs.forEach(function (tab, idx) {
+    tab.addEventListener("click", function () { selectTab(tab); });
+    tab.addEventListener("keydown", function (e) {
+      if (e.key === "ArrowRight" || e.key === "ArrowLeft") {
+        e.preventDefault();
+        var next = e.key === "ArrowRight" ? (idx + 1) % tabs.length : (idx - 1 + tabs.length) % tabs.length;
+        selectTab(tabs[next]);
+      }
+    });
+  });
+
+  /* ══════════ 01 · Inject ══════════ */
+  function runInject() {
+    var input = $("injectInput").value;
+    if (!input) {
+      $("injectOutput").value = "";
+      $("injectStats").hidden = true;
+      return;
+    }
+    var interval = Math.min(99, Math.max(1, parseInt($("interval").value, 10) || 2));
+    var char = String.fromCodePoint(parseInt($("charType").value, 16));
+    var chars = Array.from(input); // handle astral code points safely
+    var result = "";
+    var count = 0;
+    var injected = 0;
+    for (var i = 0; i < chars.length; i++) {
+      result += chars[i];
+      count++;
+      if (count === interval && i < chars.length - 1) {
+        result += char;
+        injected++;
+        count = 0;
+      }
+    }
+    var secretPayload = encodeSecret($("secretMsg").value);
+    var hiddenBits = $("secretMsg").value ? new TextEncoder().encode($("secretMsg").value).length * 8 : 0;
+    result += secretPayload;
+
+    $("injectOutput").value = result;
+    $("injectStats").hidden = false;
+    $("statIn").textContent = chars.length;
+    $("statInj").textContent = injected;
+    $("statBits").textContent = hiddenBits;
+    $("statOut").textContent = Array.from(result).length;
+  }
+  $("btnInject").addEventListener("click", runInject);
+  $("injectInput").addEventListener("input", runInject);
+  $("interval").addEventListener("input", runInject);
+  $("charType").addEventListener("change", runInject);
+  $("secretMsg").addEventListener("input", runInject);
+  $("btnInjectCopy").addEventListener("click", function () { copyText($("injectOutput").value); });
+  $("btnInjectDownload").addEventListener("click", function () { download($("injectOutput").value, "hiberius_watermark"); });
+  $("btnInjectClear").addEventListener("click", function () {
+    $("injectInput").value = "";
+    $("injectOutput").value = "";
+    $("secretMsg").value = "";
+    $("injectStats").hidden = true;
+  });
+
+  /* ══════════ 02 · Scan ══════════ */
+  function runScan() {
+    var input = $("scanInput").value;
+    var result = $("scanResult");
+    if (!input) { result.hidden = true; return; }
+
+    var chars = Array.from(input);
+    var viz = $("scanViz");
+    viz.textContent = "";
+    var report = $("scanReport");
+    report.textContent = "";
+
+    var counts = {}; // cp -> quantity
+    var order = [];   // preserve discovery order
+    var hidden = 0;
+    var run = "";
+
+    function flushRun() {
+      if (run) { viz.appendChild(document.createTextNode(run)); run = ""; }
+    }
+
+    for (var i = 0; i < chars.length; i++) {
+      var cp = chars[i].codePointAt(0);
+      var cat = classify(cp);
+      if (cat && cat !== "sym" && cat !== "space") {
+        // Fully invisible / dangerous → replace with a visible chip.
+        flushRun();
+        var chip = document.createElement("span");
+        chip.className = "chip " + CAT_CHIP[cat];
+        chip.textContent = cpHex(cp);
+        chip.title = nameFor(cp) + " · " + cpHex(cp);
+        viz.appendChild(chip);
+        hidden++;
+        if (!counts[cp]) { counts[cp] = 0; order.push(cp); }
+        counts[cp]++;
+      } else if (cat === "space") {
+        // Unusual space → keep readable but flag with a subtle chip.
+        flushRun();
+        var s = document.createElement("span");
+        s.className = "chip space";
+        s.textContent = "·" + cpHex(cp);
+        s.title = nameFor(cp) + " · " + cpHex(cp);
+        viz.appendChild(s);
+        hidden++;
+        if (!counts[cp]) { counts[cp] = 0; order.push(cp); }
+        counts[cp]++;
+      } else {
+        run += chars[i];
+      }
+    }
+    flushRun();
+
+    // Verdict
+    var verdict = $("scanVerdict");
+    if (hidden === 0) {
+      verdict.className = "verdict clean";
+      verdict.textContent = "✓ Clean — no hidden or suspicious characters detected.";
+    } else {
+      verdict.className = "verdict dirty";
+      verdict.textContent = "⚠ " + hidden + " hidden / suspicious character" + (hidden === 1 ? "" : "s") + " found across " + order.length + " type" + (order.length === 1 ? "" : "s") + ".";
+    }
+
+    // Report list (safe DOM building)
+    order.forEach(function (cp) {
+      var c = BY_CP[cp];
+      var cat = c ? c.cat : "ctrl";
+      var li = document.createElement("li");
+      var cpEl = document.createElement("span"); cpEl.className = "cp"; cpEl.textContent = cpHex(cp);
+      var nmEl = document.createElement("span"); nmEl.className = "nm"; nmEl.textContent = nameFor(cp);
+      var ctEl = document.createElement("span"); ctEl.className = "ct"; ctEl.textContent = CAT_LABEL[cat] || "Control";
+      var qtEl = document.createElement("span"); qtEl.className = "qt"; qtEl.textContent = "×" + counts[cp];
+      li.appendChild(cpEl); li.appendChild(nmEl); li.appendChild(ctEl); li.appendChild(qtEl);
+      report.appendChild(li);
+    });
+
+    // Hidden message extraction
+    var secretBox = $("scanSecret");
+    var secret = decodeSecret(input);
+    if (secret) {
+      secretBox.hidden = false;
+      secretBox.textContent = "";
+      var lbl = document.createElement("div"); lbl.className = "panel-label"; lbl.style.marginTop = "16px";
+      lbl.textContent = "Extracted hidden message";
+      var box = document.createElement("div"); box.className = "verdict dirty"; box.textContent = "🔓 " + secret;
+      secretBox.appendChild(lbl); secretBox.appendChild(box);
+    } else {
+      secretBox.hidden = true;
+    }
+
+    $("scanTotal").textContent = chars.length;
+    $("scanHidden").textContent = hidden;
+    $("scanTypes").textContent = order.length;
+    result.hidden = false;
+  }
+  $("btnScan").addEventListener("click", runScan);
+  $("scanInput").addEventListener("input", runScan);
+  $("btnScanClear").addEventListener("click", function () {
+    $("scanInput").value = "";
+    $("scanResult").hidden = true;
+  });
+
+  /* ══════════ 03 · Clean ══════════ */
+  function runClean() {
+    var input = $("cleanInput").value;
+    if (!input) {
+      $("cleanOutput").value = "";
+      $("cleanStats").hidden = true;
+      return;
+    }
+    var out = input;
+    if ($("optNFC").checked && typeof out.normalize === "function") { out = out.normalize("NFC"); }
+
+    var removedHidden = 0;
+    out = Array.from(out).filter(function (ch) {
+      var cp = ch.codePointAt(0);
+      var cat = classify(cp);
+      if (cat === "zw" && $("optZW").checked) { removedHidden++; return false; }
+      if (cat === "bidi" && $("optBidi").checked) { removedHidden++; return false; }
+      if (cat === "ctrl" && $("optCtrl").checked) { removedHidden++; return false; }
+      return true;
+    }).join("");
+
+    if ($("optSpace").checked) {
+      out = Array.from(out).map(function (ch) {
+        var cp = ch.codePointAt(0);
+        var c = BY_CP[cp];
+        if (c && c.cat === "space") {
+          return (cp === 0x2028 || cp === 0x2029) ? "\n" : " ";
+        }
+        return ch;
+      }).join("");
+    }
+    if ($("optCollapse").checked) { out = out.replace(/[^\S\r\n]{2,}/g, " "); }
+    if ($("optTrim").checked) {
+      out = out.split(/\r?\n/).map(function (line) { return line.replace(/^[^\S\n]+|[^\S\n]+$/g, ""); }).join("\n");
+    }
+
+    $("cleanOutput").value = out;
+    $("cleanStats").hidden = false;
+    $("cleanBefore").textContent = Array.from(input).length;
+    $("cleanRemoved").textContent = removedHidden;
+    $("cleanAfter").textContent = Array.from(out).length;
+  }
+  $("btnClean").addEventListener("click", runClean);
+  $("cleanInput").addEventListener("input", runClean);
+  Array.prototype.slice.call(document.querySelectorAll("#pane-clean input[type=checkbox]")).forEach(function (cb) {
+    cb.addEventListener("change", function () { if ($("cleanInput").value) { runClean(); } });
+  });
+  $("btnCleanCopy").addEventListener("click", function () { copyText($("cleanOutput").value); });
+  $("btnCleanDownload").addEventListener("click", function () { download($("cleanOutput").value, "hiberius_clean"); });
+  $("btnCleanClear").addEventListener("click", function () {
+    $("cleanInput").value = "";
+    $("cleanOutput").value = "";
+    $("cleanStats").hidden = true;
+  });
+
+  /* ══════════ 04 · Library ══════════ */
+  function buildRefRow(c) {
+    var tr = document.createElement("tr");
+
+    var tdChar = document.createElement("td");
+    if (c.cat === "sym") { tdChar.textContent = String.fromCodePoint(c.cp); }
+    else { tdChar.textContent = "—"; tdChar.style.color = "var(--neon-dim)"; }
+
+    var tdCp = document.createElement("td"); tdCp.className = "cp"; tdCp.textContent = cpHex(c.cp);
+    var tdName = document.createElement("td"); tdName.className = "nm"; tdName.textContent = c.name;
+    var tdCat = document.createElement("td"); tdCat.className = "cat"; tdCat.textContent = CAT_LABEL[c.cat];
+
+    var tdCopy = document.createElement("td");
+    var btn = document.createElement("button");
+    btn.className = "copy-btn";
+    btn.type = "button";
+    btn.textContent = "Copy";
+    btn.setAttribute("aria-label", "Copy " + c.name);
+    btn.addEventListener("click", function () { copyText(String.fromCodePoint(c.cp)); });
+    tdCopy.appendChild(btn);
+
+    tr.appendChild(tdChar); tr.appendChild(tdCp); tr.appendChild(tdName); tr.appendChild(tdCat); tr.appendChild(tdCopy);
+    return tr;
+  }
+
+  function renderRef() {
+    var body = $("refBody");
+    var q = $("refSearch").value.trim().toLowerCase();
+    var cat = $("refCat").value;
+    body.textContent = "";
+    CHARS.forEach(function (c) {
+      if (cat && c.cat !== cat) { return; }
+      if (q) {
+        var hay = (c.name + " " + cpHex(c.cp) + " " + CAT_LABEL[c.cat]).toLowerCase();
+        if (hay.indexOf(q) === -1) { return; }
+      }
+      body.appendChild(buildRefRow(c));
+    });
+  }
+
+  // Populate category filter.
+  Object.keys(CAT_LABEL).forEach(function (key) {
+    if (key === "ctrl") { return; } // ctrl chars are range-based, not listed individually
+    var opt = document.createElement("option");
+    opt.value = key;
+    opt.textContent = CAT_LABEL[key];
+    $("refCat").appendChild(opt);
+  });
+  $("refSearch").addEventListener("input", renderRef);
+  $("refCat").addEventListener("change", renderRef);
+  renderRef();
+
+  /* ── Global shortcut: Ctrl/Cmd+Enter runs the active tool ── */
+  document.addEventListener("keydown", function (e) {
+    if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
+      var active = document.querySelector('.tab[aria-selected="true"]');
+      if (!active) { return; }
+      var id = active.getAttribute("aria-controls");
+      if (id === "pane-inject") { runInject(); }
+      else if (id === "pane-scan") { runScan(); }
+      else if (id === "pane-clean") { runClean(); }
+    }
+  });
+})();
+</script>
+</body>
+</html>
