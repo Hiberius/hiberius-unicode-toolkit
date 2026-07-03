@@ -4,7 +4,6 @@
 
 [![CI](https://github.com/Hiberius/hiberius-unicode-toolkit/actions/workflows/ci.yml/badge.svg)](https://github.com/Hiberius/hiberius-unicode-toolkit/actions/workflows/ci.yml)
 [![CodeQL](https://github.com/Hiberius/hiberius-unicode-toolkit/actions/workflows/codeql.yml/badge.svg)](https://github.com/Hiberius/hiberius-unicode-toolkit/actions/workflows/codeql.yml)
-[![Pages](https://github.com/Hiberius/hiberius-unicode-toolkit/actions/workflows/pages.yml/badge.svg)](https://github.com/Hiberius/hiberius-unicode-toolkit/actions/workflows/pages.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-39FF14.svg)](LICENSE)
 [![Built with Claude Fable 5](https://img.shields.io/badge/Built%20with-Claude%20Fable%205-8A2BE2.svg)](https://www.anthropic.com/)
 
