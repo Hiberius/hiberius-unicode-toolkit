@@ -148,9 +148,31 @@ HIBERIUS is a defensive and productivity tool. The watermarking and steganograph
 
 This project was designed and built with **[Claude Fable 5](https://www.anthropic.com/)** (ultracode). The full engineering pipeline — architecture, hardening, accessibility, SEO and CI — was orchestrated with an AI agent workflow.
 
-## Need a custom tool for your business?
+## 💼 Need a custom tool for your business?
 
-I build focused, production-ready tools like this one — for **any** use case. See [ABOUT.md](ABOUT.md) for what I do and how to get in touch, or open an issue.
+**I build tools like this one — and I build them for companies.**
+
+HIBERIUS went from a single prompt to a finished, hardened, SEO-ready, CI-green product. That's how I work: fast, and production-grade — not throwaway demos. Give me a problem, I hand you the tool that solves it.
+
+**What I can build for you:**
+
+- ⚡ **Web apps & SaaS** — Next.js / React end to end, authentication, billing (Stripe), multi-tenant architecture, shipped on Vercel or Cloudflare.
+- 🤖 **AI-powered tools & agents** — LLM features that actually ship: assistants, chatbots, document processing, automations that replace hours of manual work.
+- 📊 **Marketing & ads automation** — I'm also a performance marketer, so I build what marketers really need: tracking, attribution, reporting dashboards, and campaign automation across Meta, Google & TikTok.
+- 🔧 **Internal tools & automation** — scrapers, data pipelines, CRMs and back-office utilities that save your team real time.
+- 🌐 **Single-file & browser tools** — like HIBERIUS: zero-install, offline, private by design.
+- 🛒 **Websites, e-commerce & WordPress** — Shopify stores, WordPress builds, and landing pages that convert.
+
+**Why work with me:**
+
+- I ship in **days, not months** — full-stack and AI-accelerated, with no agency overhead.
+- Everything is **production-ready**: secure, accessible, tested, documented.
+- I think like your **business**, not just like an engineer — I come from performance marketing.
+- Based in **Italy 🇮🇹**, GDPR-aware by default.
+
+**Let's talk.** [Open an issue](https://github.com/Hiberius/hiberius-unicode-toolkit/issues/new/choose) with what you need, reach me on [GitHub](https://github.com/Hiberius), or read the full pitch in [ABOUT.md](ABOUT.md).
+
+> Have an idea or a process to automate? Tell me what you're trying to do — I'll tell you how I'd build it.
 
 ---
 
