@@ -185,7 +185,7 @@ scan, clean, extract and watermark from the command line, a full character catal
 attack patterns, and a CI gate. It also knows the rule this page cannot enforce for you:
 ZWJ inside an emoji sequence or an Arabic word must not be stripped.
 
-```
+```bash
 npx skills add Hiberius/invisible-text-forensics
 ```
 
